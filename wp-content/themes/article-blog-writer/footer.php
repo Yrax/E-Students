@@ -61,11 +61,10 @@
                         <?php dynamic_sidebar('article-blog-writer-footer4'); ?>
                     <?php else : ?>
                         <aside id="pages" class="widget">
-                            <h5 class="widget-title"><?php esc_html_e( 'Get In Touch', 'article-blog-writer' ); ?></h5>
+                            <h5 class="widget-title"><?php esc_html_e( 'A Propos de Nous', 'article-blog-writer' ); ?></h5>
                             <ul class="mt-4">
-                            	<li><?php esc_html_e( 'Via Carlo Montù 78', 'article-blog-writer' ); ?><br><?php esc_html_e( '22021 Bellagio CO, Italy', 'article-blog-writer' ); ?></li>
-                            	<li><?php esc_html_e( '+11 6254 7855', 'article-blog-writer' ); ?></li>
-                            	<li><?php esc_html_e( 'support@example.com', 'article-blog-writer' ); ?></li>
+                            	<li><br><?php esc_html_e( 'Nous souhaitons aider un maximum de personne voulant apprendre', 'article-blog-writer' ); ?><br><br></li>
+                            	<li><?php esc_html_e( 'Nous restons disponible si besoin', 'article-blog-writer' ); ?></li>
                             </ul>
                         </aside>
                     <?php endif; ?>
