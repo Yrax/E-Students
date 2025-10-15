@@ -325,6 +325,12 @@ class RestAPI extends Factory
 			'callback'					=> array($this, 'geocodeCache'),
 			'useCompressedPathVariable'	=> true
 		));
+
+		$this->registerRoute('/query-nominatim', array(
+			'methods'					=> array('GET'),
+			'callback'					=> array($this, 'queryNominatim'),
+			'useCompressedPathVariable'	=> true
+		));
 		
 		$this->registerRoute('/decompress', array(
 			'methods'					=> array('GET'),
@@ -416,6 +422,9 @@ class RestAPI extends Factory
 				}
 			}
 		}
+
+		/* Check for delete simulation - To allow nonce checks when applicable */
+		$this->checkForDeleteSimulation();
 		
 		// Try to match the route
 		$args = null;
@@ -424,6 +433,19 @@ class RestAPI extends Factory
 		{
 			if(preg_match($regex, $_REQUEST['route']))
 			{
+
+				$method = !empty($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : false;
+				if(empty($method)){
+					/* Unknown request method - Do nothing */
+					continue;
+				}
+
+
+				if(empty($value['methods']) || (!empty($value['methods']) && is_array($value['methods']) && !in_array($method, $value['methods']))){
+					/* Method does not match this routes definition */
+					continue;
+				}
+
 				$args = $value;
 				break;
 			}
@@ -440,7 +462,7 @@ class RestAPI extends Factory
 			), 404);
 			exit;
 		}
-		
+
 		// Check permissions
 		if(!empty($args['permission_callback']))
 		{
@@ -816,6 +838,11 @@ class RestAPI extends Factory
 				if(isset($_GET['action'])){
 					switch($_GET['action']){
 						case 'count-duplicates':
+							if(!$wpgmza->isUserAllowedToEdit()){
+								/* Permission re-assertion */
+								return new \WP_Error('wpgmza_permission_denied', 'You do not have permission to access this resource');
+							}
+							
 							$total		= $wpdb->get_var("SELECT COUNT(*) FROM $wpgmza_tblname");
 							$duplicates	= $wpdb->get_var("SELECT COUNT(*) FROM $wpgmza_tblname GROUP BY map_id, lat, lng, address, title, link, description");
 							return array(
@@ -823,6 +850,11 @@ class RestAPI extends Factory
 							);
 							break;
 						case 'remove-duplicates':
+							if(!$wpgmza->isUserAllowedToEdit()){
+								/* Permission re-assertion */
+								return new \WP_Error('wpgmza_permission_denied', 'You do not have permission to access this resource');
+							}
+							
 							$allowed	= $wpdb->get_col("SELECT MIN(id) FROM $wpgmza_tblname GROUP BY map_id, lat, lng, address, title, link, description");
 							if(empty($allowed)){
 								return array(
@@ -1061,6 +1093,30 @@ class RestAPI extends Factory
 			$record = array();
 		
 		return $record;
+	}
+
+	public function queryNominatim(){
+		$params	= $this->getRequestParameters();
+		$cache	= new NominatimGeocodeCache();
+
+		if(!empty($params) && !empty($params['data'])){
+			$query = (object) $params['data'];
+			$results = $cache->queryNominatimProxy($query);
+			if(!empty($results)){
+				if(!empty($query->_query) && empty($results->error)){
+					/* Cache key passed */
+					try{
+						$cache->set(sanitize_text_field($query->_query), $results);
+					} catch (\Exception $ex){
+						
+					} catch (\Error $err){
+						
+					}
+				}
+				return $results;
+			}
+		}
+		return array();
 	}
 	
 	public function decompress($request)
